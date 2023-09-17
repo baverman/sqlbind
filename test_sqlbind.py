@@ -47,8 +47,8 @@ def test_conditions():
     assert q.not_none('field = {}', 20) == 'field = ?'
     assert q.not_none('field = {}', None) == ''
 
-    assert q.is_true('field = {}', 30) == 'field = ?'
-    assert q.is_true('field = {}', 0) == ''
+    assert q.not_empty('field = {}', 30) == 'field = ?'
+    assert q.not_empty('field = {}', 0) == ''
     assert q == [10, 20, 30]
 
 
@@ -73,8 +73,8 @@ def test_query_methods():
     assert q.IN('field', []) == 'FALSE'
     assert q.field.IN([10]) == 'field IN ?'
 
-    assert q.eq('t.bar', None, boo='foo') == '(boo = ? AND t.bar is NULL)'
-    assert q.neq('t.bar', None, boo='foo') == '(boo != ? AND t.bar is not NULL)'
+    assert q.eq('t.bar', None, boo='foo') == '(boo = ? AND t.bar IS NULL)'
+    assert q.neq('t.bar', None, boo='foo') == '(boo != ? AND t.bar IS NOT NULL)'
     assert q.neq('t.bar', s.not_none/None, boo=s.not_none/None) == ''
 
     assert q == [[10], 'foo', 'foo']
@@ -155,7 +155,7 @@ def test_set():
 
 def test_where():
     q = s.Dialect.default()
-    assert f'SELECT * FROM table {q.WHERE(boo=10, foo=None)}' == 'SELECT * FROM table WHERE (boo = ? AND foo is NULL)'
+    assert f'SELECT * FROM table {q.WHERE(boo=10, foo=None)}' == 'SELECT * FROM table WHERE (boo = ? AND foo IS NULL)'
     assert q == [10]
 
 
