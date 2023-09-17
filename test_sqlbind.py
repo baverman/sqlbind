@@ -49,15 +49,46 @@ def test_conditions():
 
     assert q.is_true('field = {}', 30) == 'field = ?'
     assert q.is_true('field = {}', 0) == ''
+    assert q == [10, 20, 30]
 
+
+def test_outbound_conditions():
+    q = s.Dialect.default()
+
+    assert q('field = {}', s.cond(True)/10) == 'field = ?'
+    assert q('field = {}', s.cond(False)/10) == ''
+
+    assert q.eq('field', s.not_none/20) == 'field = ?'
+    assert q.eq('field', s.not_none/None) == ''
+
+    assert q('field = {}', s.not_empty/30) == 'field = ?'
+    assert q('field = {}', s.not_empty/0) == ''
+    assert q == [10, 20, 30]
+
+
+def test_query_methods():
+    q = s.Dialect.default()
+    assert q.IN('field', s.not_empty/0) == ''
     assert q.IN('field', None) == ''
     assert q.IN('field', []) == 'FALSE'
-    assert q.IN('field', [10]) == 'field IN ?'
+    assert q.field.IN([10]) == 'field IN ?'
 
     assert q.eq('t.bar', None, boo='foo') == '(boo = ? AND t.bar is NULL)'
     assert q.neq('t.bar', None, boo='foo') == '(boo != ? AND t.bar is not NULL)'
+    assert q.neq('t.bar', s.not_none/None, boo=s.not_none/None) == ''
 
-    assert q == [10, 20, 30, [10], 'foo', 'foo']
+    assert q == [[10], 'foo', 'foo']
+
+    q = s.Dialect.default()
+    assert q.in_range(q.val, 10, 20) == '(val >= ? AND val < ?)'
+    assert q.in_crange(q._.c.val, 10, 20) == '(c.val >= ? AND c.val <= ?)'
+    assert q == [10, 20, 10, 20]
+
+
+def test_bind():
+    q = s.Dialect.sqlite()
+    assert q/10 == '?'
+    assert q == [10]
 
 
 def test_sqlite_in():
@@ -88,6 +119,9 @@ def test_logical_ops():
     rv = q('field1 < {}', 10) | q('field2 > {}', 20) & q('field3 = {}', 30)
     assert rv == '(field1 < ? OR (field2 > ? AND field3 = ?))'
 
+    assert ~q('TRUE') == 'NOT TRUE'
+    assert ~s.EMPTY == ''
+
 
 def test_prefix_join():
     q = s.Dialect.default()
@@ -98,6 +132,20 @@ def test_prefix_join():
 
     assert s.WITH('', '') == ''
     assert s.WITH('boo', 'foo') == 'WITH boo, foo'
+
+
+def test_prepend():
+    q = s.Dialect.default()
+    assert s.AND_('') == ''
+    assert s.AND_(q.f == s.not_none/None) == ''
+    assert s.AND_(q.f == s.not_none/10) == 'AND f = ?'
+    assert q == [10]
+
+    q = s.Dialect.default()
+    assert s.OR_('') == ''
+    assert s.OR_(q.f == s.not_none/None) == ''
+    assert s.OR_(q.f == s.not_none/10) == 'OR f = ?'
+    assert q == [10]
 
 
 def test_set():
@@ -114,3 +162,45 @@ def test_where():
 def test_fields():
     q = s.Dialect.default()
     assert f'SELECT {s.FIELDS("boo", q.cond(False, "foo"))}' == 'SELECT boo'
+
+
+def test_limit():
+    q = s.Dialect.default()
+    assert q.LIMIT(s.not_none/None) == ''
+    assert q.LIMIT(20) == 'LIMIT ?'
+    assert q.OFFSET(s.not_none/None) == ''
+    assert q.OFFSET(20) == 'OFFSET ?'
+
+
+def test_qexpr():
+    q = s.Dialect.default()
+
+    assert (q.val < 1) == 'val < ?'
+    assert (q.val <= 2) == 'val <= ?'
+    assert (q.val > 3) == 'val > ?'
+    assert (q.val >= 4) == 'val >= ?'
+    assert (q.val == 5) == 'val = ?'
+    assert (q.val != 6) == 'val != ?'
+    assert q == [1, 2, 3, 4, 5, 6]
+
+    assert (q.val == s.not_none/None) is s.EMPTY
+    assert (q.val == s.not_empty/0) is s.EMPTY
+    assert q == [1, 2, 3, 4, 5, 6]
+
+    q = s.Dialect.default()
+    assert (q._('field + 10') < 1) == 'field + 10 < ?'
+    assert q == [1]
+
+
+def test_dialect_descriptor():
+    class Q:
+        p = s.Dialect(s.Dialect.default)
+
+    q1 = Q.p
+    q1/10
+
+    q2 = Q.p
+    q2/20
+
+    assert q1 == [10]
+    assert q2 == [20]

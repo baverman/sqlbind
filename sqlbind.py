@@ -8,6 +8,12 @@ class Expr(str):
     def __and__(self, other: str) -> 'Expr':
         return AND(self, other)
 
+    def __invert__(self) -> 'Expr':
+        if self:
+            return Expr('NOT ' + self)
+        else:
+            return EMPTY
+
 
 def join_fragments(sep: str, fragments: t.Sequence[str], wrap: t.Optional[str] = None) -> Expr:
     fragments = list(filter(None, fragments))
@@ -28,6 +34,14 @@ def OR(*fragments: str) -> Expr:
 
 def AND(*fragments: str) -> Expr:
     return join_fragments(' AND ', fragments, '({})')
+
+
+def AND_(*fragments: str) -> str:
+    return prefix_join('AND ', ' AND ', fragments)
+
+
+def OR_(*fragments: str) -> str:
+    return prefix_join('OR ', ' OR ', fragments)
 
 
 def prefix_join(prefix: str, sep: str, fragments: t.Sequence[str], wrap: t.Optional[str] = None) -> str:
@@ -51,16 +65,107 @@ def FIELDS(*fragments: str) -> str:
     return join_fragments(', ', fragments)
 
 
+_empty_sentinel = object()
 EMPTY = Expr('')
+
+
+class NotNone:
+    def __truediv__(self, other: t.Any) -> t.Any:
+        if other is None:
+            return _empty_sentinel
+        return other
+
+
+not_none = NotNone()
+
+
+class NotEmpty:
+    def __truediv__(self, other: t.Any) -> t.Any:
+        if not other:
+            return _empty_sentinel
+        return other
+
+
+not_empty = NotEmpty()
+
+
+class cond:
+    def __init__(self, cond):
+        self._cond = cond
+
+    def __truediv__(self, other: t.Any) -> t.Any:
+        if not self._cond:
+            return _empty_sentinel
+        return other
+
+
+def _in_range(q: 'QueryParams', field: str, lop: str, left: t.Any, rop: str, right: t.Any):
+    return AND(
+        q.compile(f'{field} {lop} {{}}', (left,)) if left is not _empty_sentinel else '',
+        q.compile(f'{field} {rop} {{}}', (right,)) if right is not _empty_sentinel else '',
+    )
+
+
+class QExpr:
+    def __init__(self, q: 'QueryParams', value: str = ''):
+        self.q = q
+        self._sqlbind_value = value
+
+    def __getattr__(self, name: str):
+        if self._sqlbind_value:
+            return QExpr(self.q, f'{self._sqlbind_value}.{name}')
+        return QExpr(self.q, name)
+
+    def __call__(self, value: str):
+        return QExpr(self.q, value)
+
+    def __str__(self):
+        return self._sqlbind_value
+
+    def __lt__(self, other: t.Any) -> Expr:
+        return self.q(f'{self._sqlbind_value} < {{}}', other)
+
+    def __le__(self, other: t.Any) -> Expr:
+        return self.q(f'{self._sqlbind_value} <= {{}}', other)
+
+    def __gt__(self, other: t.Any) -> Expr:
+        return self.q(f'{self._sqlbind_value} > {{}}', other)
+
+    def __ge__(self, other: t.Any) -> Expr:
+        return self.q(f'{self._sqlbind_value} >= {{}}', other)
+
+    def __eq__(self, other: t.Any) -> Expr:  # type: ignore[override]
+        return self.q(f'{self._sqlbind_value} = {{}}', other)
+
+    def __ne__(self, other: t.Any) -> Expr:  # type: ignore[override]
+        return self.q(f'{self._sqlbind_value} != {{}}', other)
+
+    def IN(self, other: t.Any) -> Expr:
+        return self.q.IN(self._sqlbind_value, other)
+
+
+class QExprDesc:
+    def __get__(self, inst: t.Any, cls: t.Type) -> QExpr:
+        assert inst is not None
+        return QExpr(inst)
 
 
 class QueryParams:
     dialect: t.Type['BaseDialect']
+    _ = QExprDesc()
+
+    def __getattr__(self, name: str) -> QExpr:
+        return QExpr(self, name)
+
+    def __truediv__(self, value: t.Any) -> Expr:
+        return Expr(self.compile('{}', (value,)))
 
     def compile(self, expr: str, params: t.Sequence[t.Any]) -> str:
         raise NotImplementedError  # pragma: no cover
 
     def __call__(self, expr: str, *params: t.Any) -> Expr:
+        if any(it is _empty_sentinel for it in params):
+            return EMPTY
         return Expr(self.compile(expr, params))
 
     def cond(self, cond: t.Any, expr: str, *params: t.Any) -> Expr:
@@ -78,8 +183,10 @@ class QueryParams:
             return Expr(self.compile(expr, (param,)))
         return EMPTY
 
+    not_empty = is_true
+
     def IN(self, field: str, values: t.Optional[t.List[t.Any]]) -> Expr:
-        if values is None:
+        if values is None or values is _empty_sentinel:
             return EMPTY
         elif values:
             return self.dialect.IN(self, field, values)
@@ -92,7 +199,8 @@ class QueryParams:
         return AND(*(self.compile(f'{field} is NULL', ())
                      if value is None
                      else self.compile(f'{field} = {{}}', (value,))
-                     for field, value in kwargs.items()))
+                     for field, value in kwargs.items()
+                     if value is not _empty_sentinel))
 
     def neq(self, field: t.Optional[str] = None, value: t.Any = None, **kwargs: t.Any) -> Expr:
         if field:
@@ -100,18 +208,26 @@ class QueryParams:
         return AND(*(self.compile(f'{field} is not NULL', ())
                      if value is None
                      else self.compile(f'{field} != {{}}', (value,))
-                     for field, value in kwargs.items()))
+                     for field, value in kwargs.items()
+                     if value is not _empty_sentinel))
+
+    def in_range(self, field: str, left: t.Any, right: t.Any):
+        return _in_range(self, field, '>=', left, '<', right)
+
+    def in_crange(self, field: str, left: t.Any, right: t.Any):
+        return _in_range(self, field, '>=', left, '<=', right)
 
     def WHERE(self, *cond: str, **kwargs: t.Any) -> str:
         return WHERE(self.eq(**kwargs), *cond)
 
-    def set(self, **kwargs: t.Any) -> Expr:
+    def assign(self, **kwargs: t.Any) -> Expr:
         fragments = [self.compile(f'{field} = {{}}', (value,))
-                     for field, value in kwargs.items()]
+                     for field, value in kwargs.items()
+                     if value is not _empty_sentinel]
         return join_fragments(', ', fragments)
 
     def SET(self, **kwargs: t.Any) -> str:
-        return SET(self.set(**kwargs))
+        return SET(self.assign(**kwargs))
 
     def VALUES(self, data: t.Optional[t.List[t.Dict[str, t.Any]]] = None, **kwargs: t.Any) -> str:
         if not data:
@@ -124,6 +240,12 @@ class QueryParams:
             params.extend(it[f] for f in names)
 
         return self.compile(f"({', '.join(names)}) VALUES {', '.join(marks for _ in range(len(data)))}", params)
+
+    def LIMIT(self, value: t.Any):
+        return self('LIMIT {}', value)
+
+    def OFFSET(self, value: t.Any):
+        return self('OFFSET {}', value)
 
 
 class DictQueryParams(dict, QueryParams):
@@ -219,6 +341,12 @@ def sqlite_value_list(values: t.List[t.Union[float, int, str]]) -> str:
 
 
 class Dialect:
+    def __init__(self, factory: t.Callable[[], QueryParams]):
+        self.factory = factory
+
+    def __get__(self, inst: t.Any, cls: t.Type) -> QueryParams:
+        return self.factory()
+
     @staticmethod
     def default() -> QueryParams:
         return QMarkQueryParams(BaseDialect)
