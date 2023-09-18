@@ -61,7 +61,7 @@ def AND(*fragments: str) -> Expr:
 
 
 def AND_(*fragments: str) -> str:
-    """Allows to make inline additions into existing static WHERE clause
+    """Allows to make dynamic additions into existing static WHERE clause
 
     >>> date = None
     >>> f'SELECT * from users WHERE enabled = 1 {AND_(q.registration_date < not_none/date)}'
@@ -75,7 +75,7 @@ def AND_(*fragments: str) -> str:
 
 
 def OR_(*fragments: str) -> str:
-    """Allows to make inline additions into existing static WHERE clause
+    """Allows to make dynamic additions into existing static WHERE clause
 
     See `AND_` for usage.
     """
@@ -249,9 +249,14 @@ class QExpr:
         return self.q(f'{self._sqlbind_value} >= {{}}', other)
 
     def __eq__(self, other: t.Any) -> Expr:  # type: ignore[override]
-        return self.q(f'{self._sqlbind_value} = {{}}', other)
+        if other is None:
+            return f'{self._sqlbind_value} IS NULL'
+        else:
+            return self.q(f'{self._sqlbind_value} = {{}}', other)
 
     def __ne__(self, other: t.Any) -> Expr:  # type: ignore[override]
+        if other is None:
+            return f'{self._sqlbind_value} IS NOT NULL'
         return self.q(f'{self._sqlbind_value} != {{}}', other)
 
     def __invert__(self) -> Expr:
@@ -270,7 +275,7 @@ class QExprDesc:
 class QueryParams:
     """
     QueryParams accumulates query data and can be passed to actual
-    `execute` later. QueryParams is a list of dictionary of values
+    `execute` later. QueryParams is a list or dictionary of values
     depending from used dialect. See `Dialect` for convenient way to
     get QueryParams instance.
 
