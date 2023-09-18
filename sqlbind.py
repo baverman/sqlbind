@@ -645,7 +645,7 @@ class Dialect:
 
     @staticmethod
     def default() -> QueryParams:
-        """Use qmarks (?) as placeholders
+        """Uses qmarks (?) as placeholders
 
         >>> q = Dialect.default()
         >>> f'field = {q/20}'
@@ -655,7 +655,7 @@ class Dialect:
 
     @staticmethod
     def default_named() -> QueryParams:
-        """Use named params (:param) as placeholders.
+        """Uses named params (:param) as placeholders.
 
         Backend examples: SQLAlchemy
 
@@ -667,7 +667,7 @@ class Dialect:
 
     @staticmethod
     def default_pyformat() -> QueryParams:
-        """Use named params (:param) as placeholders.
+        """Uses pyformat params (%(param)s) as placeholders.
 
         Backend examples: psycopg2 and clickhouse-driver
 
@@ -679,7 +679,7 @@ class Dialect:
 
     @staticmethod
     def default_format() -> QueryParams:
-        """Use format params (%s) as placeholders.
+        """Uses format params (%s) as placeholders.
 
         Backend examples: psycopg2 and mysql-connector-python
 
@@ -691,10 +691,10 @@ class Dialect:
 
     @staticmethod
     def sqlite() -> QueryParams:
-        """Use sqlite dialect to render binds for SQLite using qmarks"""
+        """Uses sqlite dialect and renders binds with qmark (?) placeholders"""
         return QMarkQueryParams(SQLiteDialect)
 
     @staticmethod
     def sqlite_named() -> QueryParams:
-        """Use sqlite_named dialect to render binds for SQLite using named parameters"""
+        """Uses sqlite dialect and renders binds with named (:param) placeholders"""
         return NamedQueryParams(SQLiteDialect)

@@ -50,7 +50,8 @@ after many years with SQLAlchemy I've noticed some repeating patterns:
   down to raw DBAPI connection and raw SQL.
 
 * (*Minor personal grudge, please ignore it*) For some ORMs (like Django ORM) your
-  SQL intuition could be useless and even doesn't work.
+  SQL intuition could be useless and requires deep ORM understanding. To the
+  side: sqlalchemy hybrid properties, cough.
 
 It boils down to one thing: from time to time you have to write raw
 SQL queries. I could highlight 3 types of queries:
@@ -106,13 +107,13 @@ General use case looks like:
 QParams = sqlbind.Dialect.some_dialect
 
 def get_my_data(value1, value2):
-    # Construct empty fresh sqlbind.QueryParams()
+    # Construct empty fresh sqlbind.QueryParams
     q = QParams()
 
-    # Use `q` to bind parameter values used in SQL.
+    # Use `q` to bind parameter values in SQL string.
     sql = f'SELECT * FROM table WHERE field1 = {q/value1} AND field2 > {q/value2}'
 
-    # Pass query and parameters into execute
+    # Pass query and parameters into connection's execute.
     return get_connection().execute(sql, q).fetchall()
 ```
 
@@ -237,8 +238,10 @@ string based on input parameters.
 
 `q.cond` is a generic form. To remove a repetition (`enabled is not
 None`/`enabled`) when value is used both in a condition and as a parameter
-value there are two helpers for most common cases. Check value is not None
-(`q.not_none`) and value is not empty (`bool(value)` is True):
+value there are two helpers for most common cases:
+
+* `q.not_note`: to check value is not None.
+* `q.not_empty`: to check value's trueness (`bool(value) is True`).
 
 ```python
 >>> enabled = True
@@ -398,7 +401,7 @@ allowing to bind a right parameter.
 'table.field IS NULL'
 >>> q._('"my column"') != None
 '"my column" IS NOT NULL'
->>> q.field <= not_none/None  # conditional marks also works!
+>>> q.field <= not_none/None  # conditional marks also work!
 ''
 >>> q.field.IN(not_none/[10]) # BTW sqlbind has workaround for SQLite to deal with arrays in IN
 'field IN ?'
