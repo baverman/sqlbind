@@ -1,5 +1,7 @@
 import typing as t
 
+Str = t.Union[str, 'QExpr']
+
 
 class Expr(str):
     """Expr is a result of QueryParams rendering
@@ -213,7 +215,7 @@ class cond:
         return other
 
 
-def _in_range(q: 'QueryParams', field: str, lop: str, left: t.Any, rop: str, right: t.Any) -> Expr:
+def _in_range(q: 'QueryParams', field: Str, lop: str, left: t.Any, rop: str, right: t.Any) -> Expr:
     return AND(
         q.compile(f'{field} {lop} {{}}', (left,)) if left is not UNDEFINED else '',
         q.compile(f'{field} {rop} {{}}', (right,)) if right is not UNDEFINED else '',
@@ -374,7 +376,7 @@ class QueryParams:
             return Expr(self.compile(expr, (param,)))
         return EMPTY
 
-    def IN(self, field: str, values: t.Optional[t.List[t.Any]]) -> Expr:
+    def IN(self, field: Str, values: t.Optional[t.List[t.Any]]) -> Expr:
         """Helper to abstract dealing with IN for different database backends
 
         >>> q = Dialect.default()
@@ -402,7 +404,7 @@ class QueryParams:
         else:
             return Expr(self.dialect.FALSE)
 
-    def eq(self, field__: t.Optional[str] = None, value__: t.Any = None, **kwargs: t.Any) -> Expr:
+    def eq(self, field__: t.Optional[Str] = None, value__: t.Any = None, **kwargs: t.Any) -> Expr:
         """Helper to generate equality comparisons
 
         >>> q.eq('field', 10)
@@ -415,28 +417,28 @@ class QueryParams:
         '"weird field name" = ?'
         """
         if field__:
-            kwargs[field__] = value__
+            kwargs[str(field__)] = value__
         return AND(*(self.compile(f'{field} IS NULL', ())
                      if value is None
                      else self.compile(f'{field} = {{}}', (value,))
                      for field, value in kwargs.items()
                      if value is not UNDEFINED))
 
-    def neq(self, field__: t.Optional[str] = None, value__: t.Any = None, **kwargs: t.Any) -> Expr:
+    def neq(self, field__: t.Optional[Str] = None, value__: t.Any = None, **kwargs: t.Any) -> Expr:
         """Opposite to `.eq`
 
         >>> q.neq(field=10, data=None)
         '(field != ? AND data IS NOT NULL)'
         """
         if field__:
-            kwargs[field__] = value__
+            kwargs[str(field__)] = value__
         return AND(*(self.compile(f'{field} IS NOT NULL', ())
                      if value is None
                      else self.compile(f'{field} != {{}}', (value,))
                      for field, value in kwargs.items()
                      if value is not UNDEFINED))
 
-    def in_range(self, field: str, left: t.Any, right: t.Any) -> Expr:
+    def in_range(self, field: Str, left: t.Any, right: t.Any) -> Expr:
         """Helper to check field is in [left, right) bounds
 
         >>> q.in_range('date', '2023-01-01', '2023-02-01')
@@ -446,7 +448,7 @@ class QueryParams:
         """
         return _in_range(self, field, '>=', left, '<', right)
 
-    def in_crange(self, field: str, left: t.Any, right: t.Any) -> Expr:
+    def in_crange(self, field: Str, left: t.Any, right: t.Any) -> Expr:
         """Helper to check field is in [left, right] bounds
 
         >>> q.in_crange('date', '2023-01-01', '2023-02-01')
@@ -603,7 +605,7 @@ class BaseDialect:
     FALSE = 'FALSE'
 
     @staticmethod
-    def IN(q: QueryParams, field: str, values: t.List[t.Any]) -> Expr:
+    def IN(q: QueryParams, field: Str, values: t.List[t.Any]) -> Expr:
         return q(f'{field} IN {{}}', values)
 
 
@@ -612,7 +614,7 @@ class SQLiteDialect(BaseDialect):
     FALSE = '0'
 
     @staticmethod
-    def IN(q: QueryParams, field: str, values: t.List[t.Any]) -> Expr:
+    def IN(q: QueryParams, field: Str, values: t.List[t.Any]) -> Expr:
         if len(values) > 10:
             # Trying to escape and assemble sql manually to avoid too many
             # parameters exception
