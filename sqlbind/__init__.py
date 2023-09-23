@@ -1,5 +1,7 @@
 import typing as t
 
+version = '0.1'
+
 Str = t.Union[str, 'QExpr']
 
 
@@ -253,8 +255,7 @@ class QExpr:
     def __eq__(self, other: t.Any) -> Expr:  # type: ignore[override]
         if other is None:
             return Expr(f'{self._sqlbind_value} IS NULL')
-        else:
-            return self.q(f'{self._sqlbind_value} = {{}}', other)
+        return self.q(f'{self._sqlbind_value} = {{}}', other)
 
     def __ne__(self, other: t.Any) -> Expr:  # type: ignore[override]
         if other is None:
