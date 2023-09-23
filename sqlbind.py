@@ -250,13 +250,13 @@ class QExpr:
 
     def __eq__(self, other: t.Any) -> Expr:  # type: ignore[override]
         if other is None:
-            return f'{self._sqlbind_value} IS NULL'
+            return Expr(f'{self._sqlbind_value} IS NULL')
         else:
             return self.q(f'{self._sqlbind_value} = {{}}', other)
 
     def __ne__(self, other: t.Any) -> Expr:  # type: ignore[override]
         if other is None:
-            return f'{self._sqlbind_value} IS NOT NULL'
+            return Expr(f'{self._sqlbind_value} IS NOT NULL')
         return self.q(f'{self._sqlbind_value} != {{}}', other)
 
     def __invert__(self) -> Expr:
