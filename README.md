@@ -349,8 +349,8 @@ At least AND is almost on it's place in SQL structure.
 
 ### Conditional markers
 
-Conditional markers `sqlbind.not_none`/`sqlbind.not_empty`/`sqlbind.cond` allows to tie conditional property
-with variable itself via `/` operator:
+Conditional markers `sqlbind.not_none`/`sqlbind.not_empty`/`sqlbind.cond` allows to tie conditionals
+with a value via `/` operator:
 
 ```python
 >>> q('enabled = {}', sqlbind.not_none/10)
@@ -399,8 +399,6 @@ Rewritten function:
 
 ```python
 from sqlbind import AND_, not_none
-
-TODO: add explanation with None bahaviour
 
 def get_fresh_users(registered_since: datetime, enabled: Optional[bool] = None):
     q = QParams()
@@ -605,3 +603,8 @@ It's a largely artificial example but for complex queries composed from
 multiple parts it could be an issue. To reduce chance you could abstract composition
 parts in a way to contain bindings and SQL construction in one go to be
 fully synchronised.
+
+BTW, you could already noticed but out of line variants of `get_fresh_users`
+from [Dynamic queries](#dynamic-queries) and [Conditionals](#conditionals) have
+the same ordering bug: inline and out of line approaches mix quite bad. Always
+use named style Dialect if your connection backend allows it.
