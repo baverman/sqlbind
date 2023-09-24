@@ -33,14 +33,14 @@ class Expr(str):
             return EMPTY
 
 
-def join_fragments(sep: str, fragments: t.Sequence[str], wrap: t.Optional[str] = None) -> Expr:
+def join_fragments(sep: str, fragments: t.Sequence[Str], wrap: t.Optional[str] = None) -> Expr:
     fragments = list(filter(None, fragments))
     if not fragments:
         return EMPTY
     elif len(fragments) == 1:
-        return Expr(fragments[0])
+        return Expr(str(fragments[0]))
 
-    e = sep.join(fragments)
+    e = sep.join(map(str, fragments))
     if wrap:
         e = wrap.format(e)
     return Expr(e)
@@ -86,7 +86,7 @@ def OR_(*fragments: str) -> str:
     return prefix_join('OR ', ' OR ', fragments)
 
 
-def prefix_join(prefix: str, sep: str, fragments: t.Sequence[str], wrap: t.Optional[str] = None) -> str:
+def prefix_join(prefix: str, sep: str, fragments: t.Sequence[Str], wrap: t.Optional[str] = None) -> str:
     e = join_fragments(sep, fragments, wrap)
     return (prefix + e) if e else EMPTY
 
@@ -128,13 +128,41 @@ def SET(*fragments: str) -> str:
     return prefix_join('SET ', ', ', fragments)
 
 
-def FIELDS(*fragments: str) -> str:
+def FIELDS(*fragments: Str) -> str:
     """Concatenates fragments with `,`
 
     >>> FIELDS('name', 'age')
     'name, age'
     """
     return join_fragments(', ', fragments)
+
+
+def GROUP_BY(*fragments: Str) -> str:
+    """Concatenates fragments with `,` and prepends GROUP BY if not empty
+
+    >>> show_dates = True
+    >>> GROUP_BY(q.name, q.cond(show_dates, 'date'))
+    'GROUP BY name, date'
+
+    >>> show_dates = False
+    >>> GROUP_BY(q.name, q.cond(show_dates, 'date'))
+    'GROUP BY name'
+    """
+    return prefix_join('GROUP BY ', ', ', fragments)
+
+
+def ORDER_BY(*fragments: Str) -> str:
+    """Concatenates fragments with `,` and prepends ORDER BY if not empty
+
+    >>> sort_columns = [q.name, q.cond(True, 'date DESC')]
+    >>> ORDER_BY(*sort_columns)
+    'ORDER BY name, date DESC'
+
+    >>> sort_columns = [q.name, q.cond(False, 'date DESC')]
+    >>> ORDER_BY(*sort_columns)
+    'ORDER BY name'
+    """
+    return prefix_join('ORDER BY ', ', ', fragments)
 
 
 UNDEFINED = object()
@@ -341,7 +369,7 @@ class QueryParams:
             return EMPTY
         return Expr(self.compile(expr, params))
 
-    def cond(self, cond: t.Any, expr: str, *params: t.Any) -> Expr:
+    def cond(self, cond: t.Any, expr: Str, *params: t.Any) -> Expr:
         """Conditional binding
 
         >>> q.cond(False, 'enabled = 1')
@@ -350,10 +378,10 @@ class QueryParams:
         'enabled = 1'
         """
         if cond:
-            return Expr(self.compile(expr, params))
+            return Expr(self.compile(str(expr), params))
         return EMPTY
 
-    def not_none(self, expr: str, param: t.Optional[t.Any]) -> Expr:
+    def not_none(self, expr: Str, param: t.Optional[t.Any]) -> Expr:
         """Conditional binding based on param None-ness
 
         >>> q.not_none('field = {}', None)
@@ -362,10 +390,10 @@ class QueryParams:
         'field = ?'
         """
         if param is not None:
-            return Expr(self.compile(expr, (param,)))
+            return Expr(self.compile(str(expr), (param,)))
         return EMPTY
 
-    def not_empty(self, expr: str, param: t.Optional[t.Any]) -> Expr:
+    def not_empty(self, expr: Str, param: t.Optional[t.Any]) -> Expr:
         """Conditional binding based on param emptiness
 
         >>> q.not_empty('field IN {}', [])
@@ -374,7 +402,7 @@ class QueryParams:
         'field IN ?'
         """
         if param:
-            return Expr(self.compile(expr, (param,)))
+            return Expr(self.compile(str(expr), (param,)))
         return EMPTY
 
     def IN(self, field: Str, values: t.Optional[t.List[t.Any]]) -> Expr:
