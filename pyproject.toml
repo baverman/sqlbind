@@ -1,31 +1,3 @@
-[project]
-name = "sqlbind"
-authors = [
-  { name="Anton Bobrov", email="baverman+pypi@gmail.com" },
-]
-description = "sqlbind allows to bind parameters in text based raw SQL queries"
-readme = "README.md"
-requires-python = ">=3.6"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-]
-dynamic = ["version"]
-
-[project.urls]
-"Homepage" = "https://github.com/baverman/sqlbind"
-
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
-
-[tool.setuptools]
-packages = ["sqlbind"]
-
-[tool.setuptools.package-data]
-sqlbind = ["py.typed"]
-
-[tool.setuptools.dynamic]
-version = {attr = "sqlbind.version"}
-
