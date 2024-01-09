@@ -1,6 +1,6 @@
 import typing as t
 
-version = '0.9'
+version = '1.0'
 
 Str = t.Union[str, 'QExpr']
 
