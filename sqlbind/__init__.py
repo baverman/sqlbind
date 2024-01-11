@@ -46,7 +46,7 @@ def join_fragments(sep: str, fragments: t.Sequence[Str], wrap: t.Optional[str] =
     return Expr(e)
 
 
-def OR(*fragments: str) -> Expr:
+def OR(*fragments: Str) -> Expr:
     """Joins parts with OR
 
     >>> OR('enabled = 1', q.date < '2020-01-01')
@@ -55,7 +55,7 @@ def OR(*fragments: str) -> Expr:
     return join_fragments(' OR ', fragments, '({})')
 
 
-def AND(*fragments: str) -> Expr:
+def AND(*fragments: Str) -> Expr:
     """Joins parts with AND
 
     >>> AND('enabled = 1', q.date < '2020-01-01')
@@ -64,7 +64,7 @@ def AND(*fragments: str) -> Expr:
     return join_fragments(' AND ', fragments, '({})')
 
 
-def AND_(*fragments: str) -> str:
+def AND_(*fragments: Str) -> str:
     """Allows to make dynamic additions into existing static WHERE clause
 
     >>> date = None
@@ -78,7 +78,7 @@ def AND_(*fragments: str) -> str:
     return prefix_join('AND ', ' AND ', fragments)
 
 
-def OR_(*fragments: str) -> str:
+def OR_(*fragments: Str) -> str:
     """Allows to make dynamic additions into existing static WHERE clause
 
     See `AND_` for usage.
@@ -91,7 +91,7 @@ def prefix_join(prefix: str, sep: str, fragments: t.Sequence[Str], wrap: t.Optio
     return (prefix + e) if e else EMPTY
 
 
-def WHERE(*fragments: str) -> str:
+def WHERE(*fragments: Str) -> str:
     """WHERE concatenates not empty input with AND
 
     Could be used in context where all filters are static or dynamic
@@ -108,7 +108,7 @@ def WHERE(*fragments: str) -> str:
     return prefix_join('WHERE ', ' AND ', fragments)
 
 
-def WITH(*fragments: str) -> str:
+def WITH(*fragments: Str) -> str:
     """Concatenates fragments with `,` and prepends WITH if not empty
 
     Could be used to add dynamic CTEs.
@@ -124,7 +124,7 @@ def WITH(*fragments: str) -> str:
     return prefix_join('WITH ', ', ', fragments)
 
 
-def SET(*fragments: str) -> str:
+def SET(*fragments: Str) -> str:
     return prefix_join('SET ', ', ', fragments)
 
 
@@ -487,7 +487,7 @@ class QueryParams:
         """
         return _in_range(self, field, '>=', left, '<=', right)
 
-    def WHERE(self, *cond: str, **kwargs: t.Any) -> str:
+    def WHERE(self, *cond: Str, **kwargs: t.Any) -> str:
         """Helper to render the whole WHERE part based on available conditions
 
         >>> value = None
