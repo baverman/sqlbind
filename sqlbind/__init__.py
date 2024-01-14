@@ -296,6 +296,12 @@ class QExpr:
     def IN(self, other: t.Any) -> Expr:
         return self.q.IN(self._sqlbind_value, other)
 
+    def LIKE(self, template: str, other: t.Any) -> Expr:
+        return self.q.LIKE(self._sqlbind_value, template, other)
+
+    def ILIKE(self, template: str, other: t.Any) -> Expr:
+        return self.q.ILIKE(self._sqlbind_value, template, other)
+
 
 class QExprDesc:
     def __get__(self, inst: t.Any, cls: t.Any) -> QExpr:
@@ -437,6 +443,30 @@ class QueryParams:
         else:
             return Expr(self.dialect.FALSE)
 
+    def LIKE(self, field: Str, template: str, value: t.Any, op: str = 'LIKE') -> Expr:
+        r"""Renders LIKE expression with escaped value.
+
+        template is a LIKE pattern with `{}` as a value placeholder, for example:
+
+        * `{}%`: startswith
+        * `%{}`: endswith
+        * `%{}%`: contains
+
+        >>> q.LIKE('tag', '{}%', 'my_tag')
+        'tag LIKE ?'
+        >>> q
+        ['my\\_tag%']
+        >>> q.LIKE('tag', '{}%', not_none/None)  # supports UNDEFINED values
+        ''
+        """
+        if value is UNDEFINED:
+            return EMPTY
+        value = like_escape(value, self.dialect.LIKE_ESCAPE, self.dialect.LIKE_CHARS)
+        return Expr(self.compile(f'{field} {op} {{}}', (template.format(value),)))
+
+    def ILIKE(self, field: Str, template: str, value: t.Any) -> Expr:
+        return self.LIKE(field, template, value, 'ILIKE')
+
     def eq(self, field__: t.Optional[Str] = None, value__: t.Any = None, **kwargs: t.Any) -> Expr:
         """Helper to generate equality comparisons
 
@@ -571,6 +601,26 @@ class QueryParams:
         return self('OFFSET {}', value)
 
 
+def like_escape(value: str, escape: str = '\\', likechars: str = '%_') -> str:
+    r"""Escapes special LIKE characters
+
+    In general application couldn't use untrusted input in LIKE
+    expressions because it could easily lead to incorrect results in best case
+    and DDoS in worst.
+
+    >>> q('tag LIKE {}', like_escape('my_tag') + '%')
+    'tag LIKE ?'
+    >>> q
+    ['my\\_tag%']
+
+    Note: QueryParams.LIKE provides more convenient way to use it.
+    """
+    value = value.replace(escape, escape + escape)
+    for c in likechars:
+        value = value.replace(c, escape + c)
+    return value
+
+
 class DictQueryParams(t.Dict[str, t.Any], QueryParams):
     def __init__(self, dialect: t.Type['BaseDialect']):
         dict.__init__(self, {})
@@ -636,6 +686,8 @@ class PyFormatQueryParams(DictQueryParams):
 class BaseDialect:
     """Dialect compatible with most of backends"""
     FALSE = 'FALSE'
+    LIKE_ESCAPE = '\\'
+    LIKE_CHARS = '%_'
 
     @staticmethod
     def IN(q: QueryParams, field: Str, values: t.List[t.Any]) -> Expr:

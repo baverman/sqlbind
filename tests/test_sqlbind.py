@@ -204,3 +204,18 @@ def test_dialect_descriptor():
 
     assert q1 == [10]
     assert q2 == [20]
+
+
+def test_like_escape():
+    assert s.like_escape('boo') == 'boo'
+    assert s.like_escape('boo%') == 'boo\\%'
+    assert s.like_escape('boo_') == 'boo\\_'
+    assert s.like_escape('boo\\') == 'boo\\\\'
+    assert s.like_escape('%b\\oo_|', '|') == '|%b\\oo|_||'
+
+
+def test_like():
+    q = s.Dialect.default()
+    q.tag.LIKE('{}%', 'my_tag') == 'tag LIKE ?'
+    q.tag.ILIKE('{}%', 'my_tag') == 'tag ILIKE ?'
+    assert q == ['my\\_tag%', 'my\\_tag%']
