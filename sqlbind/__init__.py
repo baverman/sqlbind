@@ -201,7 +201,7 @@ class NotNone:
 not_none = NotNone()
 
 
-class NotEmpty:
+class Truthy:
     """Conditional marker to mark empty (None, False, 0, empty containers) values as UNDEFINED objects
 
     UNDEFINED objects nullifies expression effect and could be used
@@ -217,7 +217,7 @@ class NotEmpty:
         return other
 
 
-not_empty = NotEmpty()
+not_empty = truthy = Truthy()
 
 
 class cond:
@@ -393,17 +393,21 @@ class QueryParams:
             return Expr(self.compile(str(expr), (param,)))
         return EMPTY
 
-    def not_empty(self, expr: Str, param: t.Optional[t.Any]) -> Expr:
+    def truthy(self, expr: Str, param: t.Optional[t.Any]) -> Expr:
         """Conditional binding based on param emptiness
 
-        >>> q.not_empty('field IN {}', [])
+        >>> q.truthy('field IN {}', [])
         ''
-        >>> q.not_none('field IN {}', [10, 20])
+        >>> q.not_empty('field IN {}', [])  # alias to truthy
+        ''
+        >>> q.truthy('field IN {}', [10, 20])
         'field IN ?'
         """
         if param:
             return Expr(self.compile(str(expr), (param,)))
         return EMPTY
+
+    not_empty = truthy
 
     def IN(self, field: Str, values: t.Optional[t.List[t.Any]]) -> Expr:
         """Helper to abstract dealing with IN for different database backends

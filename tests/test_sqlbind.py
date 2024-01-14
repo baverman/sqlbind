@@ -61,14 +61,14 @@ def test_outbound_conditions():
     assert q.eq('field', s.not_none/20) == 'field = ?'
     assert q.eq('field', s.not_none/None) == ''
 
-    assert q('field = {}', s.not_empty/30) == 'field = ?'
-    assert q('field = {}', s.not_empty/0) == ''
+    assert q('field = {}', s.truthy/30) == 'field = ?'
+    assert q('field = {}', s.truthy/0) == ''
     assert q == [10, 20, 30]
 
 
 def test_query_methods():
     q = s.Dialect.default()
-    assert q.IN('field', s.not_empty/0) == ''
+    assert q.IN('field', s.truthy/0) == ''
     assert q.IN('field', None) == ''
     assert q.IN('field', []) == 'FALSE'
     assert q.field.IN([10]) == 'field IN ?'
@@ -184,7 +184,7 @@ def test_qexpr():
     assert q == [1, 2, 3, 4, 5, 6]
 
     assert (q.val == s.not_none/None) is s.EMPTY
-    assert (q.val == s.not_empty/0) is s.EMPTY
+    assert (q.val == s.truthy/0) is s.EMPTY
     assert q == [1, 2, 3, 4, 5, 6]
 
     q = s.Dialect.default()

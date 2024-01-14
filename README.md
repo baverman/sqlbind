@@ -255,7 +255,8 @@ None`/`enabled`) when value is used both in a condition and as a parameter
 value there are two helpers for most common cases:
 
 * `q.not_none`: to check value is not None.
-* `q.not_empty`: to check value's trueness (`bool(value) is True`).
+* `q.truthy`: to check value's trueness (`bool(value) is True`). `not_empty`
+  could be used as an alias to `truthy`.
 
 ```python
 >>> enabled = True
@@ -349,7 +350,7 @@ At least AND is almost on it's place in SQL structure.
 
 ### Conditional markers
 
-Conditional markers `sqlbind.not_none`/`sqlbind.not_empty`/`sqlbind.cond` allows to tie conditionals
+Conditional markers `sqlbind.not_none`/`sqlbind.truthy`/`sqlbind.cond` allows to tie conditionals
 with a value via `/` operator:
 
 ```python
@@ -373,12 +374,14 @@ True
 
 ```
 
-**`sqlbind.not_empty`** returns `UNDEFINED` if `bool(value) != True`:
+**`sqlbind.truthy`** or `sqlbind.not_empty` returns `UNDEFINED` if `bool(value) != True`:
 
 ```python
+>>> sqlbind.truthy/10
+10
 >>> sqlbind.not_empty/10
 10
->>> sqlbind.not_empty/0 is sqlbind.UNDEFINED
+>>> sqlbind.truthy/0 is sqlbind.UNDEFINED
 True
 
 ```
