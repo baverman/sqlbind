@@ -1,8 +1,8 @@
 import typing as t
 
-version = '1.2'
+version = "1.2"
 
-Str = t.Union[str, 'QExpr']
+Str = t.Union[str, "QExpr"]
 
 
 class Expr(str):
@@ -20,20 +20,23 @@ class Expr(str):
     >>> (q('name = {}', 'bob') | 'enabled = 1')
     '(name = ? OR enabled = 1)'
     """
-    def __or__(self, other: str) -> 'Expr':
+
+    def __or__(self, other: str) -> "Expr":
         return OR(self, other)
 
-    def __and__(self, other: str) -> 'Expr':
+    def __and__(self, other: str) -> "Expr":
         return AND(self, other)
 
-    def __invert__(self) -> 'Expr':
+    def __invert__(self) -> "Expr":
         if self:
-            return Expr('NOT ' + self)
+            return Expr("NOT " + self)
         else:
             return EMPTY
 
 
-def join_fragments(sep: str, fragments: t.Sequence[Str], wrap: t.Optional[str] = None) -> Expr:
+def join_fragments(
+    sep: str, fragments: t.Sequence[Str], wrap: t.Optional[str] = None
+) -> Expr:
     fragments = list(filter(None, fragments))
     if not fragments:
         return EMPTY
@@ -52,7 +55,7 @@ def OR(*fragments: Str) -> Expr:
     >>> OR('enabled = 1', q.date < '2020-01-01')
     '(enabled = 1 OR date < ?)'
     """
-    return join_fragments(' OR ', fragments, '({})')
+    return join_fragments(" OR ", fragments, "({})")
 
 
 def AND(*fragments: Str) -> Expr:
@@ -61,7 +64,7 @@ def AND(*fragments: Str) -> Expr:
     >>> AND('enabled = 1', q.date < '2020-01-01')
     '(enabled = 1 AND date < ?)'
     """
-    return join_fragments(' AND ', fragments, '({})')
+    return join_fragments(" AND ", fragments, "({})")
 
 
 def AND_(*fragments: Str) -> str:
@@ -75,7 +78,7 @@ def AND_(*fragments: Str) -> str:
     >>> f'SELECT * from users WHERE enabled = 1 {AND_(q.registration_date < not_none/date)}'
     'SELECT * from users WHERE enabled = 1 AND registration_date < ?'
     """
-    return prefix_join('AND ', ' AND ', fragments)
+    return prefix_join("AND ", " AND ", fragments)
 
 
 def OR_(*fragments: Str) -> str:
@@ -83,10 +86,12 @@ def OR_(*fragments: Str) -> str:
 
     See `AND_` for usage.
     """
-    return prefix_join('OR ', ' OR ', fragments)
+    return prefix_join("OR ", " OR ", fragments)
 
 
-def prefix_join(prefix: str, sep: str, fragments: t.Sequence[Str], wrap: t.Optional[str] = None) -> str:
+def prefix_join(
+    prefix: str, sep: str, fragments: t.Sequence[Str], wrap: t.Optional[str] = None
+) -> str:
     e = join_fragments(sep, fragments, wrap)
     return (prefix + e) if e else EMPTY
 
@@ -105,7 +110,7 @@ def WHERE(*fragments: Str) -> str:
     >>> f'SELECT * FROM users {WHERE(q.name == not_none/name, q.age > not_none/age)}'
     'SELECT * FROM users WHERE name = ? AND age > ?'
     """
-    return prefix_join('WHERE ', ' AND ', fragments)
+    return prefix_join("WHERE ", " AND ", fragments)
 
 
 def WITH(*fragments: Str) -> str:
@@ -121,11 +126,11 @@ def WITH(*fragments: Str) -> str:
     >>> f'{WITH(cte)} SELECT * FROM users {WHERE(q.cond(cte, "name IN (SELECT name from cte_table)"))}'
     'WITH cte_table AS (SELECT name FROM banned) SELECT * FROM users WHERE name IN (SELECT name from cte_table)'
     """
-    return prefix_join('WITH ', ', ', fragments)
+    return prefix_join("WITH ", ", ", fragments)
 
 
 def SET(*fragments: Str) -> str:
-    return prefix_join('SET ', ', ', fragments)
+    return prefix_join("SET ", ", ", fragments)
 
 
 def FIELDS(*fragments: Str) -> str:
@@ -134,7 +139,7 @@ def FIELDS(*fragments: Str) -> str:
     >>> FIELDS('name', 'age')
     'name, age'
     """
-    return join_fragments(', ', fragments)
+    return join_fragments(", ", fragments)
 
 
 def GROUP_BY(*fragments: Str) -> str:
@@ -148,7 +153,7 @@ def GROUP_BY(*fragments: Str) -> str:
     >>> GROUP_BY(q.name, q.cond(show_dates, 'date'))
     'GROUP BY name'
     """
-    return prefix_join('GROUP BY ', ', ', fragments)
+    return prefix_join("GROUP BY ", ", ", fragments)
 
 
 def ORDER_BY(*fragments: Str) -> str:
@@ -162,11 +167,11 @@ def ORDER_BY(*fragments: Str) -> str:
     >>> ORDER_BY(*sort_columns)
     'ORDER BY name'
     """
-    return prefix_join('ORDER BY ', ', ', fragments)
+    return prefix_join("ORDER BY ", ", ", fragments)
 
 
 UNDEFINED = object()
-EMPTY = Expr('')
+EMPTY = Expr("")
 
 
 class NotNone:
@@ -192,6 +197,7 @@ class NotNone:
     >>> f'SELECT * FROM users WHERE enabled = 1 {AND_(q.age > not_none/age)} {AND_(q.name == not_none/name)}'
     'SELECT * FROM users WHERE enabled = 1 AND age > ? '
     """
+
     def __truediv__(self, other: t.Any) -> t.Any:
         if other is None:
             return UNDEFINED
@@ -211,6 +217,7 @@ class Truthy:
 
     See NotNone usage
     """
+
     def __truediv__(self, other: t.Any) -> t.Any:
         if not other:
             return UNDEFINED
@@ -236,6 +243,7 @@ class cond:
 
     Also see NotNone usage.
     """
+
     def __init__(self, cond: t.Any):
         self._cond = cond
 
@@ -245,53 +253,55 @@ class cond:
         return other
 
 
-def _in_range(q: 'QueryParams', field: Str, lop: str, left: t.Any, rop: str, right: t.Any) -> Expr:
+def _in_range(
+    q: "QueryParams", field: Str, lop: str, left: t.Any, rop: str, right: t.Any
+) -> Expr:
     return AND(
-        q.compile(f'{field} {lop} {{}}', (left,)) if left is not UNDEFINED else '',
-        q.compile(f'{field} {rop} {{}}', (right,)) if right is not UNDEFINED else '',
+        q.compile(f"{field} {lop} {{}}", (left,)) if left is not UNDEFINED else "",
+        q.compile(f"{field} {rop} {{}}", (right,)) if right is not UNDEFINED else "",
     )
 
 
 class QExpr:
-    def __init__(self, q: 'QueryParams', value: str = ''):
+    def __init__(self, q: "QueryParams", value: str = ""):
         self.q = q
         self._sqlbind_value = value
 
-    def __getattr__(self, name: str) -> 'QExpr':
+    def __getattr__(self, name: str) -> "QExpr":
         if self._sqlbind_value:
-            return QExpr(self.q, f'{self._sqlbind_value}.{name}')
+            return QExpr(self.q, f"{self._sqlbind_value}.{name}")
         return QExpr(self.q, name)
 
-    def __call__(self, value: str) -> 'QExpr':
+    def __call__(self, value: str) -> "QExpr":
         return QExpr(self.q, value)
 
     def __str__(self) -> str:
         return self._sqlbind_value
 
     def __lt__(self, other: t.Any) -> Expr:
-        return self.q(f'{self._sqlbind_value} < {{}}', other)
+        return self.q(f"{self._sqlbind_value} < {{}}", other)
 
     def __le__(self, other: t.Any) -> Expr:
-        return self.q(f'{self._sqlbind_value} <= {{}}', other)
+        return self.q(f"{self._sqlbind_value} <= {{}}", other)
 
     def __gt__(self, other: t.Any) -> Expr:
-        return self.q(f'{self._sqlbind_value} > {{}}', other)
+        return self.q(f"{self._sqlbind_value} > {{}}", other)
 
     def __ge__(self, other: t.Any) -> Expr:
-        return self.q(f'{self._sqlbind_value} >= {{}}', other)
+        return self.q(f"{self._sqlbind_value} >= {{}}", other)
 
     def __eq__(self, other: t.Any) -> Expr:  # type: ignore[override]
         if other is None:
-            return Expr(f'{self._sqlbind_value} IS NULL')
-        return self.q(f'{self._sqlbind_value} = {{}}', other)
+            return Expr(f"{self._sqlbind_value} IS NULL")
+        return self.q(f"{self._sqlbind_value} = {{}}", other)
 
     def __ne__(self, other: t.Any) -> Expr:  # type: ignore[override]
         if other is None:
-            return Expr(f'{self._sqlbind_value} IS NOT NULL')
-        return self.q(f'{self._sqlbind_value} != {{}}', other)
+            return Expr(f"{self._sqlbind_value} IS NOT NULL")
+        return self.q(f"{self._sqlbind_value} != {{}}", other)
 
     def __invert__(self) -> Expr:
-        return Expr('NOT ' + self._sqlbind_value)
+        return Expr("NOT " + self._sqlbind_value)
 
     def IN(self, other: t.Any) -> Expr:
         return self.q.IN(self._sqlbind_value, other)
@@ -351,14 +361,15 @@ class QueryParams:
     >>> q._('LOWER(name)') == 'bob'  # `_()` call allow to use any literal as QExpr
     'LOWER(name) = ?'
     """
-    dialect: t.Type['BaseDialect']
+
+    dialect: t.Type["BaseDialect"]
     _ = QExprDesc()
 
     def __getattr__(self, name: str) -> QExpr:
         return QExpr(self, name)
 
     def __truediv__(self, value: t.Any) -> Expr:
-        return Expr(self.compile('{}', (value,)))
+        return Expr(self.compile("{}", (value,)))
 
     def compile(self, expr: str, params: t.Sequence[t.Any]) -> str:
         raise NotImplementedError  # pragma: no cover
@@ -443,7 +454,7 @@ class QueryParams:
         else:
             return Expr(self.dialect.FALSE)
 
-    def LIKE(self, field: Str, template: str, value: t.Any, op: str = 'LIKE') -> Expr:
+    def LIKE(self, field: Str, template: str, value: t.Any, op: str = "LIKE") -> Expr:
         r"""Renders LIKE expression with escaped value.
 
         template is a LIKE pattern with `{}` as a value placeholder, for example:
@@ -462,12 +473,14 @@ class QueryParams:
         if value is UNDEFINED:
             return EMPTY
         value = like_escape(value, self.dialect.LIKE_ESCAPE, self.dialect.LIKE_CHARS)
-        return Expr(self.compile(f'{field} {op} {{}}', (template.format(value),)))
+        return Expr(self.compile(f"{field} {op} {{}}", (template.format(value),)))
 
     def ILIKE(self, field: Str, template: str, value: t.Any) -> Expr:
-        return self.LIKE(field, template, value, 'ILIKE')
+        return self.LIKE(field, template, value, "ILIKE")
 
-    def eq(self, field__: t.Optional[Str] = None, value__: t.Any = None, **kwargs: t.Any) -> Expr:
+    def eq(
+        self, field__: t.Optional[Str] = None, value__: t.Any = None, **kwargs: t.Any
+    ) -> Expr:
         """Helper to generate equality comparisons
 
         >>> q.eq('field', 10)
@@ -481,13 +494,19 @@ class QueryParams:
         """
         if field__:
             kwargs[str(field__)] = value__
-        return AND(*(self.compile(f'{field} IS NULL', ())
-                     if value is None
-                     else self.compile(f'{field} = {{}}', (value,))
-                     for field, value in kwargs.items()
-                     if value is not UNDEFINED))
+        return AND(
+            *(
+                self.compile(f"{field} IS NULL", ())
+                if value is None
+                else self.compile(f"{field} = {{}}", (value,))
+                for field, value in kwargs.items()
+                if value is not UNDEFINED
+            )
+        )
 
-    def neq(self, field__: t.Optional[Str] = None, value__: t.Any = None, **kwargs: t.Any) -> Expr:
+    def neq(
+        self, field__: t.Optional[Str] = None, value__: t.Any = None, **kwargs: t.Any
+    ) -> Expr:
         """Opposite to `.eq`
 
         >>> q.neq(field=10, data=None)
@@ -495,11 +514,15 @@ class QueryParams:
         """
         if field__:
             kwargs[str(field__)] = value__
-        return AND(*(self.compile(f'{field} IS NOT NULL', ())
-                     if value is None
-                     else self.compile(f'{field} != {{}}', (value,))
-                     for field, value in kwargs.items()
-                     if value is not UNDEFINED))
+        return AND(
+            *(
+                self.compile(f"{field} IS NOT NULL", ())
+                if value is None
+                else self.compile(f"{field} != {{}}", (value,))
+                for field, value in kwargs.items()
+                if value is not UNDEFINED
+            )
+        )
 
     def in_range(self, field: Str, left: t.Any, right: t.Any) -> Expr:
         """Helper to check field is in [left, right) bounds
@@ -509,7 +532,7 @@ class QueryParams:
         >>> q
         ['2023-01-01', '2023-02-01']
         """
-        return _in_range(self, field, '>=', left, '<', right)
+        return _in_range(self, field, ">=", left, "<", right)
 
     def in_crange(self, field: Str, left: t.Any, right: t.Any) -> Expr:
         """Helper to check field is in [left, right] bounds
@@ -519,7 +542,7 @@ class QueryParams:
         >>> q
         ['2023-01-01', '2023-02-01']
         """
-        return _in_range(self, field, '>=', left, '<=', right)
+        return _in_range(self, field, ">=", left, "<=", right)
 
     def WHERE(self, *cond: Str, **kwargs: t.Any) -> str:
         """Helper to render the whole WHERE part based on available conditions
@@ -540,10 +563,12 @@ class QueryParams:
         >>> q.assign(name='bob', age=30, confirmed_date=None)
         'name = ?, age = ?, confirmed_date = ?'
         """
-        fragments = [self.compile(f'{field} = {{}}', (value,))
-                     for field, value in kwargs.items()
-                     if value is not UNDEFINED]
-        return join_fragments(', ', fragments)
+        fragments = [
+            self.compile(f"{field} = {{}}", (value,))
+            for field, value in kwargs.items()
+            if value is not UNDEFINED
+        ]
+        return join_fragments(", ", fragments)
 
     def SET(self, **kwargs: t.Any) -> str:
         """Helper to render a SET clause
@@ -553,7 +578,9 @@ class QueryParams:
         """
         return SET(self.assign(**kwargs))
 
-    def VALUES(self, data: t.Optional[t.List[t.Dict[str, t.Any]]] = None, **kwargs: t.Any) -> str:
+    def VALUES(
+        self, data: t.Optional[t.List[t.Dict[str, t.Any]]] = None, **kwargs: t.Any
+    ) -> str:
         """Helper to render field list and VALUES expression
 
         >>> data = [{'name': 'bob', 'age': 30}, {'name': 'fred', 'age': 20}]
@@ -570,11 +597,14 @@ class QueryParams:
 
         names = list(data[0].keys())
         params: t.List[t.Any] = []
-        marks = '({})'.format(', '.join(['{}'] * len(names)))
+        marks = "({})".format(", ".join(["{}"] * len(names)))
         for it in data:
             params.extend(it[f] for f in names)
 
-        return self.compile(f"({', '.join(names)}) VALUES {', '.join(marks for _ in range(len(data)))}", params)
+        return self.compile(
+            f"({', '.join(names)}) VALUES {', '.join(marks for _ in range(len(data)))}",
+            params,
+        )
 
     def LIMIT(self, value: t.Any) -> Expr:
         """Helper to render LIMIT
@@ -586,7 +616,7 @@ class QueryParams:
         >>> q.LIMIT(10)
         'LIMIT ?'
         """
-        return self('LIMIT {}', value)
+        return self("LIMIT {}", value)
 
     def OFFSET(self, value: t.Any) -> Expr:
         """Helper to render OFFSET
@@ -598,10 +628,10 @@ class QueryParams:
         >>> q.OFFSET(10)
         'OFFSET ?'
         """
-        return self('OFFSET {}', value)
+        return self("OFFSET {}", value)
 
 
-def like_escape(value: str, escape: str = '\\', likechars: str = '%_') -> str:
+def like_escape(value: str, escape: str = "\\", likechars: str = "%_") -> str:
     r"""Escapes special LIKE characters
 
     In general application couldn't use untrusted input in LIKE
@@ -622,7 +652,7 @@ def like_escape(value: str, escape: str = '\\', likechars: str = '%_') -> str:
 
 
 class DictQueryParams(t.Dict[str, t.Any], QueryParams):
-    def __init__(self, dialect: t.Type['BaseDialect']):
+    def __init__(self, dialect: t.Type["BaseDialect"]):
         dict.__init__(self, {})
         self.dialect = dialect
         self._count = 0
@@ -630,13 +660,13 @@ class DictQueryParams(t.Dict[str, t.Any], QueryParams):
     def add(self, params: t.Sequence[t.Any]) -> t.List[str]:
         start = self._count
         self._count += len(params)
-        names = [f'p{i}' for i, _ in enumerate(params, start)]
+        names = [f"p{i}" for i, _ in enumerate(params, start)]
         self.update(zip(names, params))
         return names
 
 
 class ListQueryParams(t.List[t.Any], QueryParams):
-    def __init__(self, dialect: t.Type['BaseDialect']):
+    def __init__(self, dialect: t.Type["BaseDialect"]):
         list.__init__(self, [])
         self.dialect = dialect
         self._count = 0
@@ -650,63 +680,78 @@ class ListQueryParams(t.List[t.Any], QueryParams):
 
 class QMarkQueryParams(ListQueryParams):
     """QueryParams implementation for qmark (?) parameter style"""
+
     def compile(self, expr: str, params: t.Sequence[t.Any]) -> str:
         self.add(params)
-        return expr.format(*('?' * len(params)))
+        return expr.format(*("?" * len(params)))
 
 
 class NumericQueryParams(ListQueryParams):
     """QueryParams implementation for numeric (:1, :2) parameter style"""
+
     def compile(self, expr: str, params: t.Sequence[t.Any]) -> str:
         start = self.add(params) + 1
-        return expr.format(*(f':{i}' for i, _ in enumerate(params, start)))
+        return expr.format(*(f":{i}" for i, _ in enumerate(params, start)))
 
 
 class FormatQueryParams(ListQueryParams):
     """QueryParams implementation for format (%s) parameter style"""
+
     def compile(self, expr: str, params: t.Sequence[t.Any]) -> str:
         self.add(params)
-        return expr.format(*(['%s'] * len(params)))
+        return expr.format(*(["%s"] * len(params)))
 
 
 class NamedQueryParams(DictQueryParams):
     """QueryParams implementation for named (:name) parameter style"""
+
     def compile(self, expr: str, params: t.Sequence[t.Any]) -> str:
         names = self.add(params)
-        return expr.format(*(f':{it}' for it in names))
+        return expr.format(*(f":{it}" for it in names))
 
 
 class PyFormatQueryParams(DictQueryParams):
     """QueryParams implementation for pyformat (%(name)s) parameter style"""
+
     def compile(self, expr: str, params: t.Sequence[t.Any]) -> str:
         names = self.add(params)
-        return expr.format(*(f'%({it})s' for it in names))
+        return expr.format(*(f"%({it})s" for it in names))
+
+
+class DollarQueryParams(ListQueryParams):
+    """QueryParams implementation for format ($1, $2, ...) parameter style"""
+
+    def compile(self, expr: str, params: t.Sequence[t.Any]) -> str:
+        start = self.add(params) + 1
+        return expr.format(*(f"${i}" for i, _ in enumerate(params, start)))
 
 
 class BaseDialect:
     """Dialect compatible with most of backends"""
-    FALSE = 'FALSE'
-    LIKE_ESCAPE = '\\'
-    LIKE_CHARS = '%_'
+
+    FALSE = "FALSE"
+    LIKE_ESCAPE = "\\"
+    LIKE_CHARS = "%_"
 
     @staticmethod
     def IN(q: QueryParams, field: Str, values: t.List[t.Any]) -> Expr:
-        return q(f'{field} IN {{}}', values)
+        return q(f"{field} IN {{}}", values)
 
 
 class SQLiteDialect(BaseDialect):
     """Dedicated SQLite dialiect to handle FALSE literal and IN operator"""
-    FALSE = '0'
+
+    FALSE = "0"
 
     @staticmethod
     def IN(q: QueryParams, field: Str, values: t.List[t.Any]) -> Expr:
         if len(values) > 10:
             # Trying to escape and assemble sql manually to avoid too many
             # parameters exception
-            return Expr(f'{field} IN ({sqlite_value_list(values)})')
+            return Expr(f"{field} IN ({sqlite_value_list(values)})")
         else:
-            qmarks = ','.join(['{}'] * len(values))
-            return q(f'{field} IN ({qmarks})', *values)
+            qmarks = ",".join(["{}"] * len(values))
+            return q(f"{field} IN ({qmarks})", *values)
 
 
 def sqlite_escape(val: t.Union[float, int, str]) -> str:
@@ -715,15 +760,16 @@ def sqlite_escape(val: t.Union[float, int, str]) -> str:
         return "'{}'".format(val.replace("'", "''"))  # type: ignore[union-attr]
     elif tval is int or tval is float:
         return str(val)
-    raise ValueError(f'Invalid type: {val}')
+    raise ValueError(f"Invalid type: {val}")
 
 
 def sqlite_value_list(values: t.List[t.Union[float, int, str]]) -> str:
-    return ','.join(map(sqlite_escape, values))
+    return ",".join(map(sqlite_escape, values))
 
 
 class Dialect:
     """Namespace to hold most popular Dialect/QueryParams combinations"""
+
     def __init__(self, factory: t.Callable[[], QueryParams]):
         self.factory = factory
 
@@ -775,6 +821,18 @@ class Dialect:
         'field = %s'
         """
         return FormatQueryParams(BaseDialect)
+
+    @staticmethod
+    def default_dollar() -> QueryParams:
+        """Uses dollar params ($1, $2, ...) as placeholders.
+
+        Backend examples: asyncpg
+
+        >>> q = Dialect.default_dollar()
+        >>> f'field = {q/20}'
+        'field = $1'
+        """
+        return DollarQueryParams(BaseDialect)
 
     @staticmethod
     def sqlite() -> QueryParams:
