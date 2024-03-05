@@ -1,0 +1,51 @@
+name: sqlbind
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - python: "3.6"
+            os: "ubuntu-20.04"
+          - python: "3.8"
+            os: "ubuntu-20.04"
+          - python: "3.12"
+            os: "ubuntu-22.04"
+    steps:
+    - uses: actions/checkout@v4
+    - name: prepare
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python }}
+    - name: deps
+      run: |
+        pip install -r requirements-test.txt
+    - name: test
+      run: python -m coverage run -m pytest
+    - name: coverage
+      run: python -m coverage report -m
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: prepare
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: deps
+      run: pip install -r requirements-lint.txt
+    - name: black
+      run: black --check .
+    - name: mypy
+      run: mypy --strict sqlbind

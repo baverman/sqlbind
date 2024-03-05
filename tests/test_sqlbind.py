@@ -55,27 +55,27 @@ def test_conditions():
 def test_outbound_conditions():
     q = s.Dialect.default()
 
-    assert q('field = {}', s.cond(True)/10) == 'field = ?'
-    assert q('field = {}', s.cond(False)/10) == ''
+    assert q('field = {}', s.cond(True) / 10) == 'field = ?'
+    assert q('field = {}', s.cond(False) / 10) == ''
 
-    assert q.eq('field', s.not_none/20) == 'field = ?'
-    assert q.eq('field', s.not_none/None) == ''
+    assert q.eq('field', s.not_none / 20) == 'field = ?'
+    assert q.eq('field', s.not_none / None) == ''
 
-    assert q('field = {}', s.truthy/30) == 'field = ?'
-    assert q('field = {}', s.truthy/0) == ''
+    assert q('field = {}', s.truthy / 30) == 'field = ?'
+    assert q('field = {}', s.truthy / 0) == ''
     assert q == [10, 20, 30]
 
 
 def test_query_methods():
     q = s.Dialect.default()
-    assert q.IN('field', s.truthy/0) == ''
+    assert q.IN('field', s.truthy / 0) == ''
     assert q.IN('field', None) == ''
     assert q.IN('field', []) == 'FALSE'
     assert q.field.IN([10]) == 'field IN ?'
 
     assert q.eq('t.bar', None, boo='foo') == '(boo = ? AND t.bar IS NULL)'
     assert q.neq('t.bar', None, boo='foo') == '(boo != ? AND t.bar IS NOT NULL)'
-    assert q.neq('t.bar', s.not_none/None, boo=s.not_none/None) == ''
+    assert q.neq('t.bar', s.not_none / None, boo=s.not_none / None) == ''
 
     assert q == [[10], 'foo', 'foo']
 
@@ -87,7 +87,7 @@ def test_query_methods():
 
 def test_bind():
     q = s.Dialect.sqlite()
-    assert q/10 == '?'
+    assert q / 10 == '?'
     assert q == [10]
 
 
@@ -137,14 +137,14 @@ def test_prefix_join():
 def test_prepend():
     q = s.Dialect.default()
     assert s.AND_('') == ''
-    assert s.AND_(q.f == s.not_none/None) == ''
-    assert s.AND_(q.f == s.not_none/10) == 'AND f = ?'
+    assert s.AND_(q.f == s.not_none / None) == ''
+    assert s.AND_(q.f == s.not_none / 10) == 'AND f = ?'
     assert q == [10]
 
     q = s.Dialect.default()
     assert s.OR_('') == ''
-    assert s.OR_(q.f == s.not_none/None) == ''
-    assert s.OR_(q.f == s.not_none/10) == 'OR f = ?'
+    assert s.OR_(q.f == s.not_none / None) == ''
+    assert s.OR_(q.f == s.not_none / 10) == 'OR f = ?'
     assert q == [10]
 
 
@@ -166,9 +166,9 @@ def test_fields():
 
 def test_limit():
     q = s.Dialect.default()
-    assert q.LIMIT(s.not_none/None) == ''
+    assert q.LIMIT(s.not_none / None) == ''
     assert q.LIMIT(20) == 'LIMIT ?'
-    assert q.OFFSET(s.not_none/None) == ''
+    assert q.OFFSET(s.not_none / None) == ''
     assert q.OFFSET(20) == 'OFFSET ?'
 
 
@@ -183,8 +183,8 @@ def test_qexpr():
     assert (q.val != 6) == 'val != ?'
     assert q == [1, 2, 3, 4, 5, 6]
 
-    assert (q.val == s.not_none/None) is s.EMPTY
-    assert (q.val == s.truthy/0) is s.EMPTY
+    assert (q.val == s.not_none / None) is s.EMPTY
+    assert (q.val == s.truthy / 0) is s.EMPTY
     assert q == [1, 2, 3, 4, 5, 6]
 
     q = s.Dialect.default()
@@ -197,10 +197,10 @@ def test_dialect_descriptor():
         p = s.Dialect(s.Dialect.default)
 
     q1 = Q.p
-    q1/10
+    q1 / 10
 
     q2 = Q.p
-    q2/20
+    q2 / 20
 
     assert q1 == [10]
     assert q2 == [20]

@@ -1,0 +1,5 @@
+[run]
+source = sqlbind
+
+[report]
+fail_under = 100

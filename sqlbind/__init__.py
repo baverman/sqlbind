@@ -20,6 +20,7 @@ class Expr(str):
     >>> (q('name = {}', 'bob') | 'enabled = 1')
     '(name = ? OR enabled = 1)'
     """
+
     def __or__(self, other: str) -> 'Expr':
         return OR(self, other)
 
@@ -192,6 +193,7 @@ class NotNone:
     >>> f'SELECT * FROM users WHERE enabled = 1 {AND_(q.age > not_none/age)} {AND_(q.name == not_none/name)}'
     'SELECT * FROM users WHERE enabled = 1 AND age > ? '
     """
+
     def __truediv__(self, other: t.Any) -> t.Any:
         if other is None:
             return UNDEFINED
@@ -211,6 +213,7 @@ class Truthy:
 
     See NotNone usage
     """
+
     def __truediv__(self, other: t.Any) -> t.Any:
         if not other:
             return UNDEFINED
@@ -236,6 +239,7 @@ class cond:
 
     Also see NotNone usage.
     """
+
     def __init__(self, cond: t.Any):
         self._cond = cond
 
@@ -351,6 +355,7 @@ class QueryParams:
     >>> q._('LOWER(name)') == 'bob'  # `_()` call allow to use any literal as QExpr
     'LOWER(name) = ?'
     """
+
     dialect: t.Type['BaseDialect']
     _ = QExprDesc()
 
@@ -481,11 +486,13 @@ class QueryParams:
         """
         if field__:
             kwargs[str(field__)] = value__
-        return AND(*(self.compile(f'{field} IS NULL', ())
-                     if value is None
-                     else self.compile(f'{field} = {{}}', (value,))
-                     for field, value in kwargs.items()
-                     if value is not UNDEFINED))
+        return AND(
+            *(
+                self.compile(f'{field} IS NULL', ()) if value is None else self.compile(f'{field} = {{}}', (value,))
+                for field, value in kwargs.items()
+                if value is not UNDEFINED
+            )
+        )
 
     def neq(self, field__: t.Optional[Str] = None, value__: t.Any = None, **kwargs: t.Any) -> Expr:
         """Opposite to `.eq`
@@ -495,11 +502,17 @@ class QueryParams:
         """
         if field__:
             kwargs[str(field__)] = value__
-        return AND(*(self.compile(f'{field} IS NOT NULL', ())
-                     if value is None
-                     else self.compile(f'{field} != {{}}', (value,))
-                     for field, value in kwargs.items()
-                     if value is not UNDEFINED))
+        return AND(
+            *(
+                (
+                    self.compile(f'{field} IS NOT NULL', ())
+                    if value is None
+                    else self.compile(f'{field} != {{}}', (value,))
+                )
+                for field, value in kwargs.items()
+                if value is not UNDEFINED
+            )
+        )
 
     def in_range(self, field: Str, left: t.Any, right: t.Any) -> Expr:
         """Helper to check field is in [left, right) bounds
@@ -540,9 +553,9 @@ class QueryParams:
         >>> q.assign(name='bob', age=30, confirmed_date=None)
         'name = ?, age = ?, confirmed_date = ?'
         """
-        fragments = [self.compile(f'{field} = {{}}', (value,))
-                     for field, value in kwargs.items()
-                     if value is not UNDEFINED]
+        fragments = [
+            self.compile(f'{field} = {{}}', (value,)) for field, value in kwargs.items() if value is not UNDEFINED
+        ]
         return join_fragments(', ', fragments)
 
     def SET(self, **kwargs: t.Any) -> str:
@@ -650,6 +663,7 @@ class ListQueryParams(t.List[t.Any], QueryParams):
 
 class QMarkQueryParams(ListQueryParams):
     """QueryParams implementation for qmark (?) parameter style"""
+
     def compile(self, expr: str, params: t.Sequence[t.Any]) -> str:
         self.add(params)
         return expr.format(*('?' * len(params)))
@@ -657,6 +671,7 @@ class QMarkQueryParams(ListQueryParams):
 
 class NumericQueryParams(ListQueryParams):
     """QueryParams implementation for numeric (:1, :2) parameter style"""
+
     def compile(self, expr: str, params: t.Sequence[t.Any]) -> str:
         start = self.add(params) + 1
         return expr.format(*(f':{i}' for i, _ in enumerate(params, start)))
@@ -664,6 +679,7 @@ class NumericQueryParams(ListQueryParams):
 
 class FormatQueryParams(ListQueryParams):
     """QueryParams implementation for format (%s) parameter style"""
+
     def compile(self, expr: str, params: t.Sequence[t.Any]) -> str:
         self.add(params)
         return expr.format(*(['%s'] * len(params)))
@@ -671,6 +687,7 @@ class FormatQueryParams(ListQueryParams):
 
 class NamedQueryParams(DictQueryParams):
     """QueryParams implementation for named (:name) parameter style"""
+
     def compile(self, expr: str, params: t.Sequence[t.Any]) -> str:
         names = self.add(params)
         return expr.format(*(f':{it}' for it in names))
@@ -678,6 +695,7 @@ class NamedQueryParams(DictQueryParams):
 
 class PyFormatQueryParams(DictQueryParams):
     """QueryParams implementation for pyformat (%(name)s) parameter style"""
+
     def compile(self, expr: str, params: t.Sequence[t.Any]) -> str:
         names = self.add(params)
         return expr.format(*(f'%({it})s' for it in names))
@@ -685,6 +703,7 @@ class PyFormatQueryParams(DictQueryParams):
 
 class BaseDialect:
     """Dialect compatible with most of backends"""
+
     FALSE = 'FALSE'
     LIKE_ESCAPE = '\\'
     LIKE_CHARS = '%_'
@@ -696,6 +715,7 @@ class BaseDialect:
 
 class SQLiteDialect(BaseDialect):
     """Dedicated SQLite dialiect to handle FALSE literal and IN operator"""
+
     FALSE = '0'
 
     @staticmethod
@@ -724,6 +744,7 @@ def sqlite_value_list(values: t.List[t.Union[float, int, str]]) -> str:
 
 class Dialect:
     """Namespace to hold most popular Dialect/QueryParams combinations"""
+
     def __init__(self, factory: t.Callable[[], QueryParams]):
         self.factory = factory
 
