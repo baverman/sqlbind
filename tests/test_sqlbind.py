@@ -38,6 +38,13 @@ def test_pyformat():
     assert q == {'p0': 10, 'p1': 20}
 
 
+def test_dollar():
+    q = s.Dialect.default_dollar()
+    assert q("field1 = {}", 10) == "field1 = $1"
+    assert q("field2 = {}", 20) == "field2 = $2"
+    assert q == [10, 20]
+
+
 def test_conditions():
     q = s.Dialect.default()
 

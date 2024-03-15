@@ -701,6 +701,14 @@ class PyFormatQueryParams(DictQueryParams):
         return expr.format(*(f'%({it})s' for it in names))
 
 
+class DollarQueryParams(ListQueryParams):
+    """QueryParams implementation for format ($1, $2, ...) parameter style"""
+
+    def compile(self, expr: str, params: t.Sequence[t.Any]) -> str:
+        start = self.add(params) + 1
+        return expr.format(*(f"${i}" for i, _ in enumerate(params, start)))
+
+
 class BaseDialect:
     """Dialect compatible with most of backends"""
 
@@ -796,6 +804,16 @@ class Dialect:
         'field = %s'
         """
         return FormatQueryParams(BaseDialect)
+
+    @staticmethod
+    def default_dollar() -> QueryParams:
+        """Uses dollar params ($1, $2, ...) as placeholders.
+        Backend examples: asyncpg
+        >>> q = Dialect.default_dollar()
+        >>> f'field = {q/20}'
+        'field = $1'
+        """
+        return DollarQueryParams(BaseDialect)
 
     @staticmethod
     def sqlite() -> QueryParams:
