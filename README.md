@@ -1,3 +1,22 @@
+# DEPRECATED
+
+**sqlbind** is deprecated in favor of **[sqlbind-t][sqlbind-t]**.
+
+* API is cleaner and safer to use.
+* t-string based.
+* There is no need to create dialect instance, all fragments could be
+  constructed completely separately from each other.
+* Which dialect and mark style to use is decided only on final step when query needs to be
+  rendered to raw SQL and parameters.
+* Migration is almost mechanical, just remove Q-instances and replace
+  Q-expressions with E-expressions.
+
+Also there is support for [older python versions][old-python].
+
+[sqlbind-t]: https://github.com/baverman/sqlbind-t
+[old-python]: https://github.com/baverman/sqlbind-t#older-python-version-support
+
+
 # sqlbind
 
 **sqlbind** allows to bind parameters in text based raw SQL queries.
